@@ -12,7 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Pievieno SQL Server savienojumu
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer("Server=localhost;Database=Ecommerce;User Id=sa;Password=yourpassword;"));
+    options.UseSqlServer("Server=localhost;Database=Ecommerce;Username=dbo;Password=;"));
 
 // Pievieno autentifik?ciju ar JWT
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

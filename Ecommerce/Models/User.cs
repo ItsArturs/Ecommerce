@@ -16,6 +16,6 @@ namespace Ecommerce.Models  // Pievieno šo
         [Required]
         public string Role { get; set; } // "admin" vai "user"
 
-        public List<Order> Orders { get; set; } = new List<Order>();
+        // public List<Order> Orders { get; set; } = new List<Order>();
     }
 }

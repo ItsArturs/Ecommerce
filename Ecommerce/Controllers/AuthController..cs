@@ -19,6 +19,7 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public IActionResult Register([FromBody] User user)
     {
+        Console.WriteLine(_context.Users.Count());
         if (_context.Users.Any(u => u.Username == user.Username))
         {
             return BadRequest("Username already exists");
