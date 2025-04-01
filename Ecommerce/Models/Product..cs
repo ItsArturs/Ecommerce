@@ -3,6 +3,7 @@ namespace Ecommerce.Models
 {
     public class Product
     {
+        [Required] 
         public int Id { get; set; }
 
         [Required]
@@ -10,5 +11,8 @@ namespace Ecommerce.Models
 
         [Required]
         public decimal Price { get; set; }
+
+        [Required]
+        public List<Order> Orders { get; set; } = new List<Order>();
     }
 }

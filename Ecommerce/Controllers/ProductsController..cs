@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Ecommerce.Models;
 
 [Route("api/products")]
 [ApiController]
