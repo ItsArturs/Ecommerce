@@ -10,6 +10,7 @@ using System.Text;
 using Ecommerce.Models;
 using System.Linq;
 using System.Reflection.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -83,17 +84,15 @@ app.Run();
 // ?? Datu b?zes konteksts
 public class AppDbContext : DbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {
+    }
 
     public DbSet<User> Users { get; set; }
     public DbSet<Product> Products { get; set; }
     public DbSet<Order> Orders { get; set; }
-
-    public void a()
-    {
-
-    }
-
+    public DbSet<UserLogin> UsersLogin { get; set; }
+    // public User LogedInUser { get; set; } = null!;
+    // public DateTime? LoginExpiresAt { get; set; } = null!;
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         /*modelBuilder.Entity<User>()
@@ -111,6 +110,34 @@ public class AppDbContext : DbContext
            .WithOne(e => e.Product)
            .HasForeignKey(e => e.ProductId)
            .IsRequired();
+    }
+    public bool IsAuthorised()
+    {
+        UserLogin userLogin = new("", "", DateTime.Now);
+        try
+        {
+            userLogin = UsersLogin.FirstOrDefault();
+        } catch (Exception ex) { return false; }
+
+        var dbUser = Users.FirstOrDefault(u => u.Username == userLogin.Username);
+        if ((dbUser == null) || (!BCrypt.Net.BCrypt.Verify(userLogin.Password, dbUser.Password))) { return false; }
+
+        if(userLogin.Expires < DateTime.UtcNow) { return false; }
+
+        return true;
+    }
+
+    public bool IsAdmin()
+    {
+        UserLogin userLogin = new("", "", DateTime.Now);
+        try
+        {
+            userLogin = UsersLogin.FirstOrDefault();
+        }
+        catch (Exception ex) { return false; }
+        var dbUser = Users.FirstOrDefault(u => u.Username == userLogin.Username);
+
+        if (IsAuthorised()) { return dbUser.Role.Equals("Admin"); } else { return false; }
     }
 }
 

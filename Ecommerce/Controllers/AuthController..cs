@@ -34,18 +34,25 @@ public class AuthController : ControllerBase
     }
     [AllowAnonymous]
     [HttpPost("register")]
-    public IActionResult Register([FromBody] User user)
+    public IActionResult Register(string Username, string Password, string Role)
     {
-        Console.WriteLine(_context.Users.Count());
-        if (_context.Users.Any(u => u.Username == user.Username))
+        if ((Username == null) || (Password == null) || (Role == null)) { return BadRequest("Fields must be filled!"); }
+        if (_context.Users.Any(u => u.Username == Username)) {  return BadRequest("Username already exists"); }
+
+        int lastId = _context.Users.Max(obj => obj.Id);
+        Password = BCrypt.Net.BCrypt.HashPassword(Password);
+
+        User user = new(lastId + 1, Username, Password, Role);
+
+        try
         {
-            return BadRequest("Username already exists");
+            _context.Users.Add(user);
+            _context.SaveChanges();
         }
-
-        user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
-        _context.Users.Add(user);
-        _context.SaveChanges();
-
+        catch (Exception ex)
+        {
+            return BadRequest("Invalid user! Error msg: " + ex.Message);
+        }
         return Ok(new { message = "User registered successfully" });
     }
 
@@ -74,17 +81,19 @@ public class AuthController : ControllerBase
         return Ok(new { token = tokenHandler.WriteToken(token) });
     }*/
     [HttpPost("login")]
-    public IActionResult Login([FromBody] string Username, string Password)
+    public IActionResult Login(string Username, string Password)
     {
-        var dbUser = _context.Users.FirstOrDefault(u => u.Username == Username);
-        if (dbUser == null || !BCrypt.Net.BCrypt.Verify(Password, dbUser.Password))
-        {
-            return Unauthorized("Invalid credentials");
-        }
+        if ((Username == null) || (Password == null)) { return BadRequest("Invalid credentials"); }
+
+        UserLogin dbUser = new(Username, Password, DateTime.UtcNow.AddHours(1));
+
+        _context.UsersLogin.Add(dbUser);
+
+        if (!_context.IsAuthorised()) { return Unauthorized("Invalid credentials"); }
 
         // Read JWT secret from configuration
         // var jwtSettings = _configuration.GetSection("Jwt");
-        var key = Encoding.UTF8.GetBytes("supersecret12345supersecret12345");
+        /*var key = Encoding.UTF8.GetBytes("supersecret12345supersecret12345");
 
         var tokenHandler = new JwtSecurityTokenHandler();
         var tokenDescriptor = new SecurityTokenDescriptor
@@ -98,8 +107,10 @@ public class AuthController : ControllerBase
             Audience = "yourdomain.com", // Set Audience
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };
+        
+        var Token = tokenHandler.WriteToken(tokenHandler.CreateToken(tokenDescriptor));*/
 
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        return Ok(new { token = tokenHandler.WriteToken(token) });
+        // return Ok(new { token = Token });
+        return Ok(new { msg = "Loged in succesfuly!" });
     }
 }

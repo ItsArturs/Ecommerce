@@ -27,5 +27,13 @@ namespace Ecommerce.Models  // Pievieno šo
             this.Password = Password;
             this.Role = Role;
         }
+
+        public User(string Username, string Password)
+        {
+            Id = -1;
+            this.Username = Username;
+            this.Password = Password;
+            Role = "defoult";
+        }
     }
 }
