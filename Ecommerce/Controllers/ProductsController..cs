@@ -23,7 +23,7 @@ public class ProductsController : ControllerBase
     public IActionResult AddProduct(string Name, decimal price)
     {
         if ((Name == null) || (price == decimal.Zero)) { return BadRequest("No product to add!"); }
-        if (!_context.IsAdmin()) { return Unauthorized("You are not logged in as Admin or login has expired"); }
+        if (!_context.IsAuthorised("Admin")) { return Unauthorized("You are not logged in as Admin or login has expired"); }
 
         int lastId = _context.Products.Max(obj => obj.Id);
         Product product = new() { Id = lastId + 1, Name = Name, Price = price };
@@ -38,5 +38,24 @@ public class ProductsController : ControllerBase
         }
         
         return Ok(product);
+    }
+    [HttpDelete]
+    public IActionResult DeletteProduct(string Name) {
+        if (Name == null) { return BadRequest("No product to delette!"); }
+        if (!_context.IsAuthorised("Admin")) { return Unauthorized("You are not logged in as Admin or login has expired"); }
+        Product product;
+        try
+        {
+            product = _context.Products.FirstOrDefault(u => u.Name == Name);
+        } catch (Exception ex) { return BadRequest("Can not delette product!"); }
+       
+
+        if (product != null)
+        {
+            _context.Products.Remove(product);
+            _context.SaveChanges();
+        }
+        return Ok(Name);
+    
     }
 }

@@ -11,6 +11,8 @@ using Ecommerce.Models;
 using System.Linq;
 using System.Reflection.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using Microsoft.AspNetCore.HttpLogging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -90,7 +92,8 @@ public class AppDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<Product> Products { get; set; }
     public DbSet<Order> Orders { get; set; }
-    public DbSet<UserLogin> UsersLogin { get; set; }
+    public DbSet<LoginInfo> Login { get; set; }
+    // public DbSet<UserLogin> UsersLogin { get; set; }
     // public User LogedInUser { get; set; } = null!;
     // public DateTime? LoginExpiresAt { get; set; } = null!;
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -110,34 +113,74 @@ public class AppDbContext : DbContext
            .WithOne(e => e.Product)
            .HasForeignKey(e => e.ProductId)
            .IsRequired();
+        modelBuilder.Entity<User>()
+           .HasOne(u => u.LoginInfo)   // Lietot?jam ir viens profils (vai nav)
+           .WithOne(p => p.User)      // Profilam ir viens lietot?js
+           .HasForeignKey<LoginInfo>(p => p.UserId)  // Sveš? atsl?ga atrodas `Profile`
+           .OnDelete(DeleteBehavior.Cascade);  // Ja User tiek dz?sts, ar? Profile tiek dz?sts
     }
     public bool IsAuthorised()
     {
-        UserLogin userLogin = new("", "", DateTime.Now);
+        LoginInfo userLogin;
         try
         {
-            userLogin = UsersLogin.FirstOrDefault();
+            userLogin = GetLoginInfo();
         } catch (Exception ex) { return false; }
-
-        var dbUser = Users.FirstOrDefault(u => u.Username == userLogin.Username);
-        if ((dbUser == null) || (!BCrypt.Net.BCrypt.Verify(userLogin.Password, dbUser.Password))) { return false; }
-
+        
         if(userLogin.Expires < DateTime.UtcNow) { return false; }
 
         return true;
     }
 
-    public bool IsAdmin()
+    public bool IsAuthorised(string Role)
     {
-        UserLogin userLogin = new("", "", DateTime.Now);
+        LoginInfo userLogin;
         try
         {
-            userLogin = UsersLogin.FirstOrDefault();
+            userLogin = GetLoginInfo();
         }
         catch (Exception ex) { return false; }
-        var dbUser = Users.FirstOrDefault(u => u.Username == userLogin.Username);
 
-        if (IsAuthorised()) { return dbUser.Role.Equals("Admin"); } else { return false; }
+        if (IsAuthorised()) { return userLogin.User.Role.Equals(Role); } else { return false; }
+    }
+
+    public bool ValidateLogin(string Username, string Password)
+    {
+        if ((Username == null) || (Password == null)) { return false; }
+        Login.ExecuteDelete();
+        User userLogin;
+        try
+        {
+            userLogin = Users.FirstOrDefault(u => u.Username == Username);
+        } catch (Exception ex) { return false; }
+        
+        if (userLogin == null) { return false; }
+      
+        if (!BCrypt.Net.BCrypt.Verify(Password, userLogin.Password)) { return false; }
+
+        LoginInfo loginInfo = new();
+        loginInfo.Id = 1;
+        loginInfo.Expires = DateTime.UtcNow.AddHours(1);
+        loginInfo.UserId = userLogin.Id;
+        loginInfo.User = Users.FirstOrDefault(a => a.Id == loginInfo.UserId);
+
+        Login.Add(loginInfo);
+        SaveChanges();
+        return true;
+    }
+    public LoginInfo GetLoginInfo()
+    {
+        LoginInfo loginInfo = new LoginInfo();
+        try
+        {
+            loginInfo = Login.FirstOrDefault();
+        } catch ( Exception ex)
+        {
+            return null;
+        }
+
+        loginInfo.User = Users.FirstOrDefault(a => a.Id == loginInfo.UserId);
+        return loginInfo;
     }
 }
 

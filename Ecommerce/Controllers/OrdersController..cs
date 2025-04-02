@@ -29,16 +29,16 @@ public class OrdersController : ControllerBase
             return Unauthorized("You are not logged in or login has expired!");
         }
 
-        int lastId = _context.Users.Max(obj => obj.Id);
+        int lastId = _context.Orders.Max(obj => obj.Id);
         Order order = new Order();
-        order.Id = lastId;
+        order.Id = lastId + 1;
         order.Count = count;
 
-        UserLogin userLogin = new("", "", DateTime.Now);
+        LoginInfo userLogin = new();
         try
         {
-            userLogin = _context.UsersLogin.FirstOrDefault();
-            order.User = _context.Users.FirstOrDefault(p => p.Username == userLogin.Username);
+            userLogin = _context.GetLoginInfo();
+            order.User = userLogin.User;
             order.UserId = order.User.Id;
         } catch (Exception ex) { return BadRequest("Invalid"); }
 

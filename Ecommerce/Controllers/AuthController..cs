@@ -83,13 +83,7 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public IActionResult Login(string Username, string Password)
     {
-        if ((Username == null) || (Password == null)) { return BadRequest("Invalid credentials"); }
-
-        UserLogin dbUser = new(Username, Password, DateTime.UtcNow.AddHours(1));
-
-        _context.UsersLogin.Add(dbUser);
-
-        if (!_context.IsAuthorised()) { return Unauthorized("Invalid credentials"); }
+        if (!_context.ValidateLogin(Username, Password)) { return BadRequest("Invalid credentials"); }
 
         // Read JWT secret from configuration
         // var jwtSettings = _configuration.GetSection("Jwt");
